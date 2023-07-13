@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "405780545927",
+    "project_id": "mirzamanandsons-2c35d",
+    "storage_bucket": "mirzamanandsons-2c35d.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:405780545927:android:349db5c02d819bb357d322",
+        "android_client_info": {
+          "package_name": "com.mirzamanandsonsarms"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "405780545927-7ovsh48tc30er6a2hosp73liuvm2b9ks.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCt8kWd6YcOFcZASo0XT_Bg3cDDI6zgqjM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "405780545927-7ovsh48tc30er6a2hosp73liuvm2b9ks.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
