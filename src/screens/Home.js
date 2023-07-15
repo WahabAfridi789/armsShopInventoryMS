@@ -1,38 +1,25 @@
 import React from 'react';
-import {View, StyleSheet, Text,ImageBackground} from 'react-native';
+import {View, StyleSheet, Text, ImageBackground} from 'react-native';
 
 import Btn from '../components/Btn';
-import {darkGreen, green} from '../components/Constants';
+import {darkWhite, green, black} from '../components/Constants';
 
 const Home = props => {
   return (
-    <ImageBackground
-      source={require('../assets/home1.jpg')}
-      style={{height: '100%'}}>
-      <View
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-        <View
-          style={{
-            marginHorizontal: 40,
-            display: 'flex',
-            justifyContent: 'space-between',
-          }}>
+    <ImageBackground source={require('../assets/home1.jpg')} style={{flex: 1}}>
+      <View style={styles.container}>
+        <View style={styles.buttonContainer}>
           <Btn
-            bgColor={green}
+            bgColor={`${green}99`}
             textColor="white"
             btnLabel="Login"
-            Press={() => props.navigation.navigate('Login')}
+            onPress={() => props.navigation.navigate('Login')}
           />
           <Btn
-            bgColor="white"
-            textColor={darkGreen}
+            bgColor={`${darkWhite}99`}
+            textColor={black}
             btnLabel="Signup"
-            Press={() => props.navigation.navigate('Signup')}
+            onPress={() => props.navigation.navigate('Signup')}
           />
         </View>
       </View>
@@ -40,6 +27,17 @@ const Home = props => {
   );
 };
 
-const styles = StyleSheet.create({});
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  buttonContainer: {
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '90%',
+  },
+});
 
 export default Home;

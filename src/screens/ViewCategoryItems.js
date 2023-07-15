@@ -1,10 +1,11 @@
-import React, {useEffect, useState} from 'react';
+import React, {useEffect, useState, useCallback} from 'react';
 import {
   View,
   Text,
   TouchableOpacity,
   StyleSheet,
   ScrollView,
+  ActivityIndicator ,
   Alert,
   Modal,
   TextInput,
@@ -12,45 +13,36 @@ import {
 import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import Icon from 'react-native-vector-icons/FontAwesome';
+import {getUserName, getShopInventory} from '../services/firebaseServices';
 
 const ViewCategoryItems = ({route, navigation}) => {
   const {category} = route.params;
   const currentUser = auth().currentUser;
   const [userName, setUserName] = useState('');
   const [shopInventory, setShopInventory] = useState({});
+  const [loading, setLoading] = useState(true);
+
+
+  const fetchUserName = useCallback(async () => {
+    const name = await getUserName(currentUser.uid);
+    setUserName(name);
+  }, [currentUser]);
+
+  const fetchShopInventoryData = useCallback(async () => {
+     setLoading(true);
+    const inventoryData = await getShopInventory(currentUser.uid);
+    setShopInventory(inventoryData);
+    setLoading(false);
+  }, [currentUser]);
 
   useEffect(() => {
-    if (currentUser) {
-      const fetchUserName = async () => {
-        const userSnapshot = await firestore()
-          .collection('users')
-          .doc(currentUser.uid)
-          .get();
-
-        if (userSnapshot.exists) {
-          const userData = userSnapshot.data();
-          setUserName(userData.name);
-        }
-      };
-
-      const fetchShopInventory = async () => {
-        const shopInventorySnapshot = await firestore()
-          .collection('users')
-          .doc(currentUser.uid)
-          .collection('shopInventory')
-          .doc('inventory')
-          .get();
-
-        if (shopInventorySnapshot.exists) {
-          const inventoryData = shopInventorySnapshot.data();
-          setShopInventory(inventoryData);
-        }
-      };
-
+    const unsubscribe = navigation.addListener('focus', () => {
       fetchUserName();
-      fetchShopInventory();
-    }
-  }, []);
+      fetchShopInventoryData();
+    });
+
+    return unsubscribe;
+  }, [navigation, fetchUserName, fetchShopInventoryData]);
 
   return (
     <View style={styles.container}>
@@ -60,7 +52,7 @@ const ViewCategoryItems = ({route, navigation}) => {
         </Text>
       </View>
 
-      <ScrollView style={styles.section}>
+      {/* <ScrollView style={styles.section}>
         <Text style={styles.subheading}>
           {category.charAt(0).toUpperCase() + category.slice(1)} Inventory
         </Text>
@@ -83,10 +75,24 @@ const ViewCategoryItems = ({route, navigation}) => {
                         ),
                       })
                     }>
-                    <Text style={styles.categoryText}>
-                      {subcategory}{' '}
-                      {category.charAt(0).toUpperCase() + category.slice(1)}
-                    </Text>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 20,
+                      }}>
+                      <Text style={styles.categoryText}>
+                        View {subcategory}{' '}
+                        {category.charAt(0).toUpperCase() + category.slice(1)}
+                      </Text>
+                      <View>
+                        <Icon
+                          name="arrow-circle-right"
+                          size={30}
+                          color="#EEEEEE"
+                        />
+                      </View>
+                    </View>
                   </TouchableOpacity>
 
                   <View style={styles.itemContainer}>
@@ -101,19 +107,97 @@ const ViewCategoryItems = ({route, navigation}) => {
                     <Text style={styles.itemContainerText}>
                       Total{' '}
                       {subcategory.charAt(0).toUpperCase() +
-                                    subcategory.slice(1)}
-                        {' '}
+                        subcategory.slice(1)}{' '}
                       Value:{' '}
                       {items.reduce((acc, item) => acc + item.totalPrice, 0)}
                       &nbsp; PKR
                     </Text>
-
                   </View>
                 </View>
               ),
             )}
           </View>
         </View>
+      </ScrollView> */}
+
+      <ScrollView style={styles.section}>
+        {loading ? (
+          <ActivityIndicator size="large" color="
+          #00ADB5
+          " />
+        ) : (
+          <>
+            <Text style={styles.subheading}>
+              {category.charAt(0).toUpperCase() + category.slice(1)} Inventory
+            </Text>
+            <View style={styles.categoryContainer}>
+              <View style={styles.subcategoryContainer}>
+                {Object.entries(shopInventory[category] || {}).map(
+                  ([subcategory, items]) => (
+                    <View key={subcategory}>
+                      <TouchableOpacity
+                        style={styles.subcategoryItem}
+                        onPress={() =>
+                          navigation.navigate('ViewSubCategoryItemsList', {
+                            category,
+                            subcategory,
+                            items,
+                            shopInventory,
+                            quantity: items.reduce(
+                              (acc, item) => acc + item.quantity,
+                              0,
+                            ),
+                          })
+                        }>
+                        <View
+                          style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 20,
+                          }}>
+                          <Text style={styles.categoryText}>
+                            View {subcategory}{' '}
+                            {category.charAt(0).toUpperCase() +
+                              category.slice(1)}
+                          </Text>
+                          <View>
+                            <Icon
+                              name="arrow-circle-right"
+                              size={30}
+                              color="#EEEEEE"
+                            />
+                          </View>
+                        </View>
+                      </TouchableOpacity>
+
+                      <View style={styles.itemContainer}>
+                        <Text style={styles.itemContainerText}>
+                          Total{' '}
+                          {subcategory.charAt(0).toUpperCase() +
+                            subcategory.slice(1)}{' '}
+                          Quantity:{' '}
+                          {items.reduce((acc, item) => acc + item.quantity, 0)}
+                        </Text>
+
+                        <Text style={styles.itemContainerText}>
+                          Total{' '}
+                          {subcategory.charAt(0).toUpperCase() +
+                            subcategory.slice(1)}{' '}
+                          Value:{' '}
+                          {items.reduce(
+                            (acc, item) => acc + item.totalPrice,
+                            0,
+                          )}{' '}
+                          &nbsp; PKR
+                        </Text>
+                      </View>
+                    </View>
+                  ),
+                )}
+              </View>
+            </View>
+          </>
+        )}
       </ScrollView>
 
       <View style={styles.section}>
@@ -123,43 +207,6 @@ const ViewCategoryItems = ({route, navigation}) => {
           <Text style={styles.logoutButtonText}>Back to Dashboard</Text>
         </TouchableOpacity>
       </View>
-
-      {/* {selectedItem && (
-        <Modal
-          isVisible={editModalVisible}
-          onBackdropPress={closeModal}
-          backdropOpacity={0.5}
-          animationIn="fadeIn"
-          animationOut="fadeOut"
-          backdropTransitionOutTiming={0}
-          useNativeDriver
-          style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalHeader}>Edit Item</Text>
-            <Text style={styles.modalItemName}>{selectedItem.item.name}</Text>
-            <Text style={styles.modalItemQuantity}>
-              Current Quantity: {selectedItem.item.quantity}
-            </Text>
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Sold Quantity"
-              keyboardType="numeric"
-              value={soldQuantity}
-              onChangeText={setSoldQuantity}
-            />
-            <View style={styles.modalButtonContainer}>
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={handleUpdateItem}>
-                <Text style={styles.modalButtonText}>Update Item</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.modalButton} onPress={closeModal}>
-                <Text style={styles.modalButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      )} */}
     </View>
   );
 };
@@ -204,21 +251,18 @@ const styles = StyleSheet.create({
     color: '#EEEEEE',
     borderRadius: 8,
     padding: 16,
-    textTransform: 'capitalize',
   },
   subcategoryContainer: {
-    marginLeft: 20,
-    marginTop: 10,
     color: '#EEEEEE',
   },
   subcategoryItem: {
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 10,
     backgroundColor: '#00ADB5',
     borderRadius: 8,
     padding: 10,
-    marginBottom: 5,
-
-    color: '#EEEEEE',
+    flexDirection: 'row',
   },
   itemContainer: {
     backgroundColor: '#00ADB5',
@@ -305,3 +349,36 @@ const styles = StyleSheet.create({
 });
 
 export default ViewCategoryItems;
+
+// useEffect(() => {
+//   if (currentUser) {
+//     const fetchUserName = async () => {
+//       const userSnapshot = await firestore()
+//         .collection('users')
+//         .doc(currentUser.uid)
+//         .get();
+
+//       if (userSnapshot.exists) {
+//         const userData = userSnapshot.data();
+//         setUserName(userData.name);
+//       }
+//     };
+
+//     const fetchShopInventory = async () => {
+//       const shopInventorySnapshot = await firestore()
+//         .collection('users')
+//         .doc(currentUser.uid)
+//         .collection('shopInventory')
+//         .doc('inventory')
+//         .get();
+
+//       if (shopInventorySnapshot.exists) {
+//         const inventoryData = shopInventorySnapshot.data();
+//         setShopInventory(inventoryData);
+//       }
+//     };
+
+//     fetchUserName();
+//     fetchShopInventory();
+//   }
+// }, []);

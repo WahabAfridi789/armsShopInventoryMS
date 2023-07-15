@@ -1,6 +1,14 @@
 import React from 'react';
 import {useState} from 'react';
-import {View, Text, Touchable, TouchableOpacity} from 'react-native';
+import {
+  View,
+  Text,
+  Touchable,
+  TouchableOpacity,
+  Dimensions,
+  StyleSheet,
+  Alert,
+} from 'react-native';
 import Background from '../components/Background';
 import Btn from '../components/Btn';
 import {darkGreen} from '../components/Constants';
@@ -174,13 +182,27 @@ const Signup = props => {
   // };
 
   const handleSignup = async () => {
+    //checking fields are not empty
+    if (!email || !password || !confirmPassword || !name) {
+      Alert.alert('Please fill in all fields.');
+      return;
+    }
+    console.log('a');
+
+    if (password !== confirmPassword) {
+      Alert.alert('Password and Confirm Password do not match.');
+      return;
+    }
+
     try {
       // Create user account
+
       const userCredential = await auth().createUserWithEmailAndPassword(
         email,
         password,
       );
       const user = userCredential.user;
+      console.log('b');
 
       // Create shop inventory document
       const shopInventory = {
@@ -197,13 +219,9 @@ const Signup = props => {
 
       // Create transaction inventory document
       const transactionInventory = {
-        pistols: {
-        },
-        guns: {
-        },
-        bullets: {
-        },
-        
+        pistols: {},
+        guns: {},
+        bullets: {},
       };
 
       // Save user data to Firestore
@@ -213,12 +231,14 @@ const Signup = props => {
       };
 
       await firestore().collection('users').doc(user.uid).set(userData);
+
       await firestore()
         .collection('users')
         .doc(user.uid)
         .collection('shopInventory')
         .doc('inventory')
         .set(shopInventory);
+
       await firestore()
         .collection('users')
         .doc(user.uid)
@@ -228,7 +248,13 @@ const Signup = props => {
 
       // ...
     } catch (error) {
-      // ...
+      if (error.code === 'auth/email-already-in-use') {
+        Alert.alert('Error', 'Email address is already in use.');
+      } else if (error.code === 'auth/weak-password') {
+        Alert.alert('Error', 'Password is too weak.');
+      } else {
+        Alert.alert('Error', 'Failed to create an account.');
+      }
     }
   };
 
@@ -280,114 +306,98 @@ const Signup = props => {
   };
 
   return (
-    <Background>
-      <View style={{alignItems: 'center', width: 460}}>
-        <Text
-          style={{
-            color: 'white',
-            fontSize: 64,
-            fontWeight: 'bold',
-            marginTop: 20,
-            marginRight: 50,
-          }}>
-          Register
-        </Text>
-        <Text
-          style={{
-            color: 'white',
-            fontSize: 19,
-            fontWeight: 'bold',
-            marginBottom: 20,
-            marginRight: 50,
-          }}>
-          Create a new account
-        </Text>
-        <View
-          style={{
-            backgroundColor: 'white',
-            height: 700,
-            width: 460,
-            borderTopLeftRadius: 130,
-            paddingTop: 50,
-            alignItems: 'center',
-            marginRight: 50,
-          }}>
-          <Field placeholder="Name" onChangeText={text => setName(text)} />
-          <Field
-            placeholder="Email"
-            keyboardType="email-address"
-            onChangeText={text => setEmail(text)}
-          />
-          <Field
-            placeholder="Password"
-            secureTextEntry={true}
-            onChangeText={text => setPassword(text)}
-          />
-          <Field
-            placeholder="Confirm Password"
-            secureTextEntry={true}
-            onChangeText={text => setConfirmPassword(text)}
-          />
-          <View
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              width: '78%',
-              paddingRight: 16,
-            }}>
-            <Text style={{color: 'grey', fontSize: 16}}>
-              By signing in, you agree to our{' '}
-            </Text>
-            <Text style={{color: darkGreen, fontWeight: 'bold', fontSize: 16}}>
-              Terms & Conditions
-            </Text>
-          </View>
+    <View style={styles.container}>
+      <Text style={styles.title}>Register</Text>
+      <View style={styles.contentContainer}>
+        <Text style={styles.subtitle}>Welcome</Text>
+        <Text style={styles.description}>Register to an App</Text>
+        <Field placeholder="Name" onChangeText={text => setName(text)} />
+        <Field
+          placeholder="Email"
+          keyboardType="email-address"
+          onChangeText={text => setEmail(text)}
+        />
+        <Field
+          placeholder="Password"
+          secureTextEntry={true}
+          onChangeText={text => setPassword(text)}
+        />
+        <Field
+          placeholder="Confirm Password"
+          secureTextEntry={true}
+          onChangeText={text => setConfirmPassword(text)}
+        />
 
-          <View
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'center',
-              width: '78%',
-              paddingRight: 16,
-              marginBottom: 10,
-            }}>
-            <Text style={{color: 'grey', fontSize: 16}}>and </Text>
-            <Text style={{color: darkGreen, fontWeight: 'bold', fontSize: 16}}>
-              Privacy Policy
-            </Text>
-          </View>
-          <Btn
-            textColor="white"
-            bgColor={darkGreen}
-            btnLabel="Signup"
-            Press={handleSignup}
-          />
-          <View
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'center',
-            }}>
-            <Text style={{fontSize: 16, fontWeight: 'bold'}}>
-              Already have an account ?{' '}
-            </Text>
-            <TouchableOpacity
-              onPress={() => props.navigation.navigate('Login')}>
-              <Text
-                style={{
-                  color: darkGreen,
-                  fontWeight: 'bold',
-                  fontSize: 16,
-                }}>
-                Login
-              </Text>
-            </TouchableOpacity>
-          </View>
+        <Btn
+          textColor="white"
+          bgColor={darkGreen}
+          btnLabel="Signup"
+          onPress={handleSignup}
+        />
+        <View style={styles.loginContainer}>
+          <Text style={styles.loginText}>Already have an account? </Text>
+          <TouchableOpacity onPress={() => props.navigation.navigate('Login')}>
+            <Text style={styles.loginLink}>Login</Text>
+          </TouchableOpacity>
         </View>
       </View>
-    </Background>
+    </View>
   );
 };
+
+const {width} = Dimensions.get('window');
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: '#393E46',
+  },
+  title: {
+    color: 'white',
+    fontSize: 64,
+    fontWeight: 'bold',
+    marginVertical: 20,
+  },
+  subtitle: {
+    color: 'black',
+    fontSize: 40,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  description: {
+    color: 'grey',
+    fontSize: 19,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  contentContainer: {
+    backgroundColor: 'white',
+    flex: 1,
+    borderTopLeftRadius: 50,
+    borderTopRightRadius: 50,
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 50,
+    alignItems: 'center',
+    width: width - 40,
+    marginBottom: 20,
+  },
+  loginContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  loginText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'grey',
+  },
+  loginLink: {
+    color: darkGreen,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+});
 
 export default Signup;

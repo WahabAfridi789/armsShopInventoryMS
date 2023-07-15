@@ -1,18 +1,7 @@
 export const green = '#49464D';
-export const darkGreen = '#49464D';
-export const lightGreen = '#49464D';
-export const red = '#49464D';
-export const darkRed = '#49464D';
-export const lightRed = '#49464D';
-export const blue = '#49464D';
-export const darkBlue = '#49464D';
-export const lightBlue = '#49464D';
-export const purple = '#49464D';
-export const darkPurple = '#49464D';
-export const lightPurple = '#49464D';
-export const white = '#49464D';
-export const black = '#49464D';
-export const gray = '#49464D';
-export const lightGray = '#49464D';
-export const darkGray = '#49464D';
-export const yellow = '#49464D';
+export const darkGreen = '#00ADB5';
+export const black = '#222831'; 
+export const darkWhite = '#edddfc';
+export const skyBlue = '#00ADB5';
+
+

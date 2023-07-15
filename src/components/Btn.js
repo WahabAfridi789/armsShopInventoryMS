@@ -1,10 +1,10 @@
 import React from 'react';
 import {TouchableOpacity, Text, StyleSheet} from 'react-native';
 
-const Btn = ({Press, bgColor, textColor, btnLabel}) => {
+const Btn = ({onPress, bgColor, textColor, btnLabel}) => {
   return (
     <TouchableOpacity
-      onPress={Press}
+      onPress={onPress}
       style={[styles.button, {backgroundColor: bgColor}]}>
       <Text style={[styles.buttonText, {color: textColor}]}>{btnLabel}</Text>
     </TouchableOpacity>
@@ -13,11 +13,11 @@ const Btn = ({Press, bgColor, textColor, btnLabel}) => {
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 100,
+    borderRadius: 50,
     alignItems: 'center',
-    width: 350,
-    paddingVertical: 5,
-    marginVertical: 10,
+    width: '90%',
+    paddingVertical: 12,
+    marginBottom: 20,
     shadowColor: '#000',
     shadowOffset: {
       width: 0,
@@ -28,8 +28,9 @@ const styles = StyleSheet.create({
     elevation: 5,
   },
   buttonText: {
-    fontSize: 25,
+    fontSize: 18,
     fontWeight: 'bold',
+    textTransform: 'uppercase',
   },
 });
 

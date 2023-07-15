@@ -1,4 +1,4 @@
-import React, {useEffect, useState} from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   View,
   Text,
@@ -13,31 +13,78 @@ import auth from '@react-native-firebase/auth';
 import firestore from '@react-native-firebase/firestore';
 import Icon from 'react-native-vector-icons/FontAwesome';
 
+import {deleteItem} from '../services/firebaseServices';
+
 const ViewSubCategoryItemsList = ({route, navigation}) => {
   const {category, subcategory, items, shopInventory, quantity} = route.params;
 
   const [selectedItem, setSelectedItem] = useState(null);
   const [editModalVisible, setEditModalVisible] = useState(false);
-  const [soldQuantity, setSoldQuantity] = useState('');
-    const [soldPrice, setSoldPrice] = useState(500);
-    
-    const currentUser = auth().currentUser;
+  const [modalName, setModalName] = useState('');
+  const [modalQuantity, setModalQuantity] = useState('');
+  const [modalPrice, setModalPrice] = useState('');
 
-  const handleAddTransaction = async (subcategory, item) => {
-    if (!currentUser) {
-      console.log('User not logged in');
+  const [transactionModalVisible, setTransactionModalVisible] = useState(false);
+  const [transactionQuantity, setTransactionQuantity] = useState('');
+
+  const currentUser = auth().currentUser;
+
+  const handleTransaction = async () => {
+    if (!selectedItem) {
       return;
-      }
-      
-      console.log(item);
-  
+    }
 
-    if (!quantity || !soldPrice) {
+    // Check if the quantity entered is valid
+    if (parseInt(transactionQuantity) > parseInt(selectedItem.item.quantity)) {
+      Alert.alert(
+        'Invalid Quantity',
+        `Only ${selectedItem.item.quantity} items are available.`,
+      );
+      return;
+    }
+
+    const {subcategory, item} = selectedItem;
+
+    if (!transactionQuantity || !item.price) {
       console.log('Please fill in all fields');
       return;
     }
 
+    const updatedSubcategoryItems = shopInventory[category][subcategory].map(
+      subItem => {
+        if (subItem.id === item.id) {
+          return {
+            ...subItem,
+            quantity:
+              parseInt(subItem.quantity) - parseInt(transactionQuantity),
+            totalPrice:
+              parseInt(subItem.totalPrice) -
+              parseInt(transactionQuantity) * parseInt(item.price),
+          };
+        }
+        return subItem;
+      },
+    );
+
     try {
+      const currentUser = auth().currentUser;
+
+      if (!currentUser) {
+        return;
+      }
+
+      await firestore()
+        .collection('users')
+        .doc(currentUser.uid)
+        .collection('shopInventory')
+        .doc('inventory')
+        .update({
+          [category]: {
+            ...shopInventory[category],
+            [subcategory]: updatedSubcategoryItems,
+          },
+        });
+
       const inventorySnapshot = await firestore()
         .collection('users')
         .doc(currentUser.uid)
@@ -51,15 +98,14 @@ const ViewSubCategoryItemsList = ({route, navigation}) => {
 
       const itemId = firestore().collection('users').doc().id;
 
-        let soldQuantity  = 20
       const newTransactionItem = {
         id: itemId, // Add the generated auto ID to the item
         name: item.name,
-        quantity: parseInt(soldQuantity),
+        quantity: parseInt(transactionQuantity),
         price: parseFloat(item.price),
-        soldPrice: parseFloat(soldPrice),
-        totalPrice: parseInt(soldQuantity) * parseFloat(item.price),
-        totalSoldPrice: parseInt(soldQuantity) * parseFloat(soldPrice),
+        soldPrice: parseFloat(item.price), // Assuming sold price is the same as the item price
+        totalPrice: parseInt(transactionQuantity) * parseFloat(item.price),
+        totalSoldPrice: parseInt(transactionQuantity) * parseFloat(item.price),
         date: new Date().toISOString().slice(0, 10),
         time: new Date().toISOString().slice(11, 19),
       };
@@ -82,44 +128,41 @@ const ViewSubCategoryItemsList = ({route, navigation}) => {
         .doc('inventory')
         .set(updatedTransactionInventory);
 
-      Alert.alert('Item added successfully');
+      setTransactionModalVisible(false);
+      setSelectedItem(null);
+      setTransactionQuantity('');
+
+      Alert.alert('Success', 'Item sold successfully.');
     } catch (error) {
-      console.log('Error adding item:', error);
+      console.log('Error selling item:', error);
+      Alert.alert('Error', 'Failed to sell item.');
     }
   };
 
   const handleDeleteItem = async (subcategory, item) => {
     try {
-      const currentUser = auth().currentUser;
-
-      if (!currentUser) {
-        return;
-      }
-
-      const updatedSubcategoryItems = shopInventory[category][
-        subcategory
-      ].filter(subItem => subItem.id !== item.id);
-
-      console.log(
-        'ViewSubCategoryItemsList: handleDeleteItem: updatedSubcategoryItems: ',
-        updatedSubcategoryItems,
+      Alert.alert(
+        'Confirmation',
+        'Are you sure you want to delete this item?',
+        [
+          {
+            text: 'Cancel',
+            style: 'cancel',
+          },
+          {
+            text: 'Delete',
+            style: 'destructive',
+            onPress: async () => {
+              try {
+                await deleteItem(category, subcategory, item, shopInventory);
+                Alert.alert('Success', 'Item deleted successfully.');
+              } catch (error) {
+                Alert.alert('Error', 'Failed to delete item.');
+              }
+            },
+          },
+        ],
       );
-
-      const updatedInventory = {
-        ...shopInventory[category],
-        [subcategory]: updatedSubcategoryItems,
-      };
-
-      await firestore()
-        .collection('users')
-        .doc(currentUser.uid)
-        .collection('shopInventory')
-        .doc('inventory')
-        .update({
-          [category]: updatedInventory,
-        });
-
-      Alert.alert('Success', 'Item deleted successfully.');
     } catch (error) {
       console.log('Error deleting item:', error);
       Alert.alert('Error', 'Failed to delete item.');
@@ -127,7 +170,11 @@ const ViewSubCategoryItemsList = ({route, navigation}) => {
   };
 
   const handleEditItem = (subcategory, item) => {
+    console.log('Edit Item');
     setSelectedItem({subcategory, item});
+    setModalName(item.name);
+    setModalQuantity(item.quantity.toString());
+    setModalPrice(item.price.toString());
     setEditModalVisible(true);
   };
 
@@ -143,10 +190,10 @@ const ViewSubCategoryItemsList = ({route, navigation}) => {
         if (subItem.id === item.id) {
           return {
             ...subItem,
-            quantity: parseInt(subItem.quantity) - parseInt(soldQuantity),
-            totalPrice:
-              parseInt(subItem.totalPrice) -
-              parseInt(soldQuantity) * parseInt(subItem.price),
+            quantity: parseInt(modalQuantity),
+            name: modalName,
+            price: modalPrice,
+            totalPrice: parseInt(modalQuantity) * parseInt(modalPrice),
           };
         }
         return subItem;
@@ -174,7 +221,6 @@ const ViewSubCategoryItemsList = ({route, navigation}) => {
 
       setEditModalVisible(false);
       setSelectedItem(null);
-      setSoldQuantity('');
 
       Alert.alert('Success', 'Item updated successfully.');
     } catch (error) {
@@ -184,15 +230,19 @@ const ViewSubCategoryItemsList = ({route, navigation}) => {
   };
 
   const handleSoldItem = (subcategory, item) => {
-      setSelectedItem({ subcategory, item });
-      handleAddTransaction(subcategory, item);
-    setEditModalVisible(true);
+    setSelectedItem({subcategory, item});
+    setTransactionModalVisible(true);
   };
 
   const closeModal = () => {
     setEditModalVisible(false);
     setSelectedItem(null);
-    setSoldQuantity('');
+    setModalName('');
+    setModalQuantity('');
+    setModalPrice('');
+    setTransactionModalVisible(false);
+    setSelectedItem(null);
+    setTransactionQuantity('');
   };
 
   return (
@@ -203,93 +253,120 @@ const ViewSubCategoryItemsList = ({route, navigation}) => {
         </Text>
       </View>
       <ScrollView style={styles.scrollViewContainer}>
-        {items.map((item, index) => (
-          <View key={index} style={styles.itemContainer}>
-            <Text
-              style={[
-                styles.itemsListText,
-                {
-                  fontSize: 20,
-                  backgroundColor: '#222831',
-                  color: '#EEEEEE',
-                },
-              ]}>
-              {' '}
-              {item.name}
-            </Text>
-            <Text style={styles.itemsListText}>Quantity: {item.quantity}</Text>
-            <Text style={styles.itemsListText}>Price: {item.price}</Text>
-            <Text style={styles.itemsListText}>
-              Total Price: {item.totalPrice}
-            </Text>
-            <Text style={styles.itemsListText}>Date Added : {item.date}</Text>
-            <View style={styles.itemButtonsContainer}>
-              <TouchableOpacity
-                onPress={() => handleEditItem(subcategory, item)}>
-                <Icon
-                  name="edit"
-                  size={20}
-                  color="#05445E"
-                  style={styles.itemButton}
-                />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleDeleteItem(subcategory, item)}>
-                <Icon
-                  name="trash"
-                  size={20}
-                  color="#FF6B6B"
-                  style={styles.itemButton}
-                />
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                onPress={() => handleSoldItem(subcategory, item)}>
-                <Icon
-                  name="check-circle"
-                  size={20}
-                  color="#FF6B6B"
-                  style={styles.itemButton}
-                />
-              </TouchableOpacity>
+        {items.length === 0 ? (
+          <Text style={styles.noItemsText}>No items in this category</Text>
+        ) : (
+          items.map((item, index) => (
+            <View key={index} style={styles.itemContainer}>
+              <Text
+                style={[
+                  styles.itemsListText,
+                  {
+                    fontSize: 20,
+                    backgroundColor: '#222831',
+                    color: '#EEEEEE',
+                  },
+                ]}>
+                {item.name}
+              </Text>
+              <Text style={styles.itemsListText}>
+                Quantity: {item.quantity}
+              </Text>
+              <Text style={styles.itemsListText}>Price: {item.price}</Text>
+              <Text style={styles.itemsListText}>
+                Total Price: {item.totalPrice}
+              </Text>
+              <Text style={styles.itemsListText}>Date Added: {item.date}</Text>
+              <View style={styles.itemButtonsContainer}>
+                <TouchableOpacity
+                  onPress={() => handleEditItem(subcategory, item)}>
+                  <Icon
+                    name="edit"
+                    size={20}
+                    color="#EEEEEE"
+                    style={styles.itemButton}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleDeleteItem(subcategory, item)}>
+                  <Icon
+                    name="trash"
+                    size={20}
+                    color="#FF6B6B"
+                    style={styles.itemButton}
+                  />
+                </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() => handleSoldItem(subcategory, item)}>
+                  <Icon
+                    name="check-circle"
+                    size={20}
+                    color="#EEEEEE"
+                    style={styles.itemButton}
+                  />
+                </TouchableOpacity>
+              </View>
             </View>
-          </View>
-        ))}
-        {/* Edit Item Modal */}
+          ))
+        )}
+
+        {/* Edit/Transaction Item Modal */}
         {selectedItem && (
           <Modal
-            isVisible={editModalVisible}
-            onBackdropPress={closeModal}
-            backdropOpacity={0.5}
-            animationIn="fadeIn"
-            animationOut="fadeOut"
-            backdropTransitionOutTiming={0}
-            useNativeDriver
-            style={styles.modalContainer}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalHeader}>Edit Item</Text>
-              <Text style={styles.modalItemName}>{selectedItem.item.name}</Text>
-              <Text style={styles.modalItemQuantity}>
-                Current Quantity: {selectedItem.item.quantity}
-              </Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Sold Quantity"
-                keyboardType="numeric"
-                value={soldQuantity}
-                onChangeText={setSoldQuantity}
-              />
-              <View style={styles.modalButtonContainer}>
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={handleUpdateItem}>
-                  <Text style={styles.modalButtonText}>Update Item</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={styles.modalButton}
-                  onPress={closeModal}>
-                  <Text style={styles.modalButtonText}>Close</Text>
-                </TouchableOpacity>
+            visible={editModalVisible || transactionModalVisible}
+            transparent={true}
+            animationType="fade">
+            <View style={styles.modalOverlay}>
+              <View style={styles.modalContainer}>
+                <Text style={styles.modalHeader}>
+                  {editModalVisible ? 'Edit Item' : 'Sell Item'}
+                </Text>
+
+                {editModalVisible && (
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Enter Name"
+                    value={modalName}
+                    onChangeText={setModalName}
+                  />
+                )}
+
+                <TextInput
+                  style={styles.modalInput}
+                  placeholder="Enter Quantity"
+                  keyboardType="numeric"
+                  value={editModalVisible ? modalQuantity : transactionQuantity}
+                  onChangeText={
+                    editModalVisible ? setModalQuantity : setTransactionQuantity
+                  }
+                />
+
+                {editModalVisible && (
+                  <TextInput
+                    style={styles.modalInput}
+                    placeholder="Enter Price"
+                    keyboardType="numeric"
+                    value={modalPrice}
+                    onChangeText={setModalPrice}
+                  />
+                )}
+
+                <View style={styles.modalButtonContainer}>
+                  <TouchableOpacity
+                    style={styles.modalButton}
+                    onPress={
+                      editModalVisible ? handleUpdateItem : handleTransaction
+                    }>
+                    <Text style={styles.modalButtonText}>
+                      {editModalVisible ? 'Update Item' : 'Sell Item'}
+                    </Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    style={[styles.modalButton, {backgroundColor: '#FF6B6B'}]}
+                    onPress={closeModal}>
+                    <Text style={styles.modalButtonText}>Close</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
             </View>
           </Modal>
@@ -318,7 +395,12 @@ const ViewSubCategoryItemsList = ({route, navigation}) => {
 
         <TouchableOpacity
           style={styles.bottomButton}
-          onPress={() => console.log('Add Item')}>
+          onPress={() => {
+            navigation.navigate('AddSubCategoryItem', {
+              category: category,
+              subcategory: subcategory,
+            });
+          }}>
           <Text style={styles.bottomButtonText}>Add Item</Text>
         </TouchableOpacity>
       </View>
@@ -331,12 +413,6 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
     backgroundColor: '#393E46',
-  },
-  section: {
-    marginBottom: 20,
-    borderRadius: 8,
-    padding: 16,
-    backgroundColor: '#00ADB5',
   },
   heading: {
     fontSize: 24,
@@ -352,7 +428,6 @@ const styles = StyleSheet.create({
   scrollViewContainer: {
     marginBottom: 70,
   },
-
   centered: {
     alignItems: 'center',
   },
@@ -373,7 +448,6 @@ const styles = StyleSheet.create({
     marginLeft: 20,
     marginTop: 10,
   },
-
   itemsListText: {
     fontSize: 16,
     fontWeight: 'bold',
@@ -397,12 +471,11 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'center',
     gap: 30,
-
     marginTop: 8,
   },
   itemButton: {
     marginLeft: 10,
-    backgroundColor: '#EEEEEE',
+    backgroundColor: '#222831',
     padding: 10,
     borderRadius: 8,
     marginBottom: 5,
@@ -419,42 +492,54 @@ const styles = StyleSheet.create({
     color: 'white',
   },
   // Modal Styles
-  modalContainer: {
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 2,
-    borderColor: 'red',
-    margin: 10,
   },
-  modalContent: {
-    backgroundColor: '#00ADB5',
+  modalContainer: {
+    backgroundColor: '#222831',
+    width: '80%',
+
     borderRadius: 8,
     padding: 16,
     alignItems: 'center',
-    borderWidth: 2,
   },
   modalHeader: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: 'bold',
     marginBottom: 16,
+    color: '#EEEEEE',
+    padding: 10,
+    borderWidth: 1,
+
+    borderRadius: 8,
+    borderColor: '#EEEEEE',
   },
   modalItemName: {
     fontSize: 18,
     marginBottom: 8,
+    fontWeight: 'bold',
   },
   modalItemQuantity: {
     fontSize: 16,
     marginBottom: 16,
   },
   modalInput: {
-    width: '100%',
+    width: '90%',
     height: 40,
     borderColor: '#ccc',
     borderWidth: 1,
     borderRadius: 4,
     marginBottom: 16,
     paddingHorizontal: 8,
+    fontSize: 16,
+    color: '#222831',
+    backgroundColor: '#EEEEEE',
+    paddingVertical: 8,
   },
+
   modalButtonContainer: {
     flexDirection: 'row',
     justifyContent: 'center',
@@ -470,7 +555,6 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
   },
-
   bottomButtonsContainer: {
     position: 'absolute',
     bottom: 0,
@@ -493,6 +577,13 @@ const styles = StyleSheet.create({
     color: 'white',
     fontWeight: 'bold',
     fontSize: 16,
+  },
+  noItemsText: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    marginTop: 20,
+    color: '#EEEEEE',
   },
 });
 

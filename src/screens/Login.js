@@ -1,8 +1,13 @@
 import React, {useState} from 'react';
-import {View, Text, TouchableOpacity} from 'react-native';
-import Background from '../components/Background';
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Dimensions,
+} from 'react-native';
 import Btn from '../components/Btn';
-import {darkGreen} from '../components/Constants';
+import {darkGreen,black} from '../components/Constants';
 import Field from '../components/Field';
 import auth from '@react-native-firebase/auth';
 
@@ -21,7 +26,7 @@ const Login = props => {
       .then(() => {
         alert('Logged in successfully!');
         // Navigate to the desired screen after login
-       props.navigation.navigate('Dashboard');
+        props.navigation.navigate('Dashboard');
       })
       .catch(error => {
         if (
@@ -36,39 +41,12 @@ const Login = props => {
   };
 
   return (
-    <Background>
-      <View style={{alignItems: 'center', width: 460, marginRight: 50}}>
-        <Text
-          style={{
-            color: 'white',
-            fontSize: 64,
-            fontWeight: 'bold',
-            marginVertical: 20,
-          }}>
-          Login
-        </Text>
-        <View
-          style={{
-            backgroundColor: 'white',
-            height: 730,
-            width: 460,
-            borderTopLeftRadius: 130,
-            paddingTop: 100,
-            alignItems: 'center',
-            marginRight: 50,
-          }}>
-          <Text style={{fontSize: 40, color: darkGreen, fontWeight: 'bold'}}>
-            Welcome Back
-          </Text>
-          <Text
-            style={{
-              color: 'grey',
-              fontSize: 19,
-              fontWeight: 'bold',
-              marginBottom: 20,
-            }}>
-            Login to your account
-          </Text>
+    
+      <View style={styles.container}>
+        <Text style={styles.title}>Login</Text>
+        <View style={styles.contentContainer}>
+          <Text style={styles.subtitle}>Welcome Back</Text>
+          <Text style={styles.description}>Login to your account</Text>
           <Field
             placeholder="Email / Username"
             keyboardType="email-address"
@@ -79,44 +57,93 @@ const Login = props => {
             secureTextEntry={true}
             onChangeText={text => setPassword(text)}
           />
-          <View
-            style={{
-              alignItems: 'flex-end',
-              width: '78%',
-              paddingRight: 16,
-              marginBottom: 200,
-            }}>
-            <Text style={{color: darkGreen, fontWeight: 'bold', fontSize: 16}}>
-              Forgot Password?
-            </Text>
-          </View>
+          <TouchableOpacity
+            style={styles.forgotPasswordContainer}
+            onPress={() => console.log('Forgot Password?')}>
+            <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
+          </TouchableOpacity>
           <Btn
             textColor="white"
             bgColor={darkGreen}
             btnLabel="Login"
-            Press={handleLogin}
+            onPress={handleLogin}
           />
-          <View
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              justifyContent: 'center',
-            }}>
-            <Text style={{fontSize: 16, fontWeight: 'bold'}}>
-              Don't have an account?{' '}
-            </Text>
+          <View style={styles.signupContainer}>
+            <Text style={styles.signupText}>Don't have an account? </Text>
             <TouchableOpacity
               onPress={() => props.navigation.navigate('Signup')}>
-              <Text
-                style={{color: darkGreen, fontWeight: 'bold', fontSize: 16}}>
-                Signup
-              </Text>
+              <Text style={styles.signupLink}>Signup</Text>
             </TouchableOpacity>
           </View>
         </View>
       </View>
-    </Background>
+   
   );
 };
+
+const {width} = Dimensions.get('window');
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    alignItems: 'center',
+    paddingHorizontal: 20,
+    backgroundColor: '#393E46',
+  },
+  title: {
+    color: 'white',
+    fontSize: 64,
+    fontWeight: 'bold',
+    marginVertical: 20,
+  },
+  contentContainer: {
+    backgroundColor: 'white',
+    flex: 1,
+    borderTopLeftRadius: 50,
+    borderTopRightRadius: 50,
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 50,
+    alignItems: 'center',
+    width: width - 40,
+    marginBottom: 20,
+  },
+  subtitle: {
+    color: black,
+    fontSize: 40,
+    fontWeight: 'bold',
+    marginBottom: 10,
+  },
+  description: {
+    color: 'grey',
+    fontSize: 19,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  forgotPasswordContainer: {
+    alignItems: 'flex-end',
+    width: '78%',
+    marginBottom: 20,
+  },
+  forgotPasswordText: {
+    color: darkGreen,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+  signupContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+  signupText: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: 'grey',
+  },
+  signupLink: {
+    color: darkGreen,
+    fontWeight: 'bold',
+    fontSize: 16,
+  },
+});
 
 export default Login;

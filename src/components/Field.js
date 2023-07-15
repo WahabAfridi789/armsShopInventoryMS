@@ -1,21 +1,28 @@
 import React from 'react';
-import {TextInput} from 'react-native';
-import {darkGreen} from './Constants';
+import {TextInput, StyleSheet} from 'react-native';
+import { black} from './Constants';
 
 const Field = props => {
   return (
     <TextInput
       {...props}
-      style={{
-        borderRadius: 100,
-        color: darkGreen,
-        paddingHorizontal: 10,
-        width: '78%',
-        backgroundColor: 'rgb(220,220, 220)',
-        marginVertical: 10,
-      }}
-      placeholderTextColor={darkGreen}></TextInput>
+      style={styles.input}
+      placeholderTextColor={black}
+    />
   );
 };
+
+const styles = StyleSheet.create({
+  input: {
+    borderRadius: 50,
+    color: black,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    width: '90%',
+    backgroundColor: 'rgb(220, 220, 220)',
+    marginBottom: 20,
+    fontSize: 16,
+  },
+});
 
 export default Field;

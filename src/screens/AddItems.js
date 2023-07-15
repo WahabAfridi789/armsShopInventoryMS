@@ -1,4 +1,3 @@
-
 // import React, {useState, useEffect} from 'react';
 // import {
 //   View,
@@ -76,7 +75,6 @@
 //     const handleAddSubCategory = async () => {
 //         if (selectedCategory !== '') {
 //           if (newSubCategory !== '') {
-              
 
 //                 try {
 //                     await firestore()
@@ -104,7 +102,6 @@
 //         setNewSubCategory('');
 //         // setIsSubCategoryAdded(false);
 //     };
-
 
 //     return (
 //       <View style={styles.container}>
@@ -261,6 +258,8 @@ import {
   TouchableOpacity,
   StyleSheet,
   Alert,
+  Appearance,
+  Dimensions,
 } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
 import auth from '@react-native-firebase/auth';
@@ -308,13 +307,7 @@ const AddItem = props => {
       return;
     }
 
-    if (
-      !category ||
-      !subcategory ||
-      !name ||
-      !quantity ||
-      !price 
-    ) {
+    if (!category || !subcategory || !name || !quantity || !price) {
       console.log('Please fill in all fields');
       return;
     }
@@ -331,25 +324,17 @@ const AddItem = props => {
         ? inventorySnapshot.data()
         : {};
 
-      // const newItem = {
-      //   name,
-      //   quantity: parseInt(quantity),
-      //   price: parseFloat(price),
-      //   totalPrice: parseInt(quantity) * parseFloat(price),
-      //   date: new Date().toISOString().slice(0, 10),
-      // };
+      const itemId = firestore().collection('users').doc().id;
 
- const itemId = firestore().collection('users').doc().id;
-
-       const newItem = {
-         id: itemId, // Add the generated auto ID to the item
-         name,
-         quantity: parseInt(quantity),
-         price: parseFloat(price),
-         totalPrice: parseInt(quantity) * parseFloat(price),
-         date: new Date().toISOString().slice(0, 10),
-         time: new Date().toISOString().slice(11, 19),
-       };
+      const newItem = {
+        id: itemId, // Add the generated auto ID to the item
+        name,
+        quantity: parseInt(quantity),
+        price: parseFloat(price),
+        totalPrice: parseInt(quantity) * parseFloat(price),
+        date: new Date().toISOString().slice(0, 10),
+        time: new Date().toISOString().slice(11, 19),
+      };
 
       const updatedShopInventory = {
         ...shopInventory,
@@ -369,14 +354,14 @@ const AddItem = props => {
         .doc('inventory')
         .set(updatedShopInventory);
 
-      Alert.alert('Item added successfully');
+      Alert.alert('Added', 'Item added successfully');
       // Clear input fields
-      // setCategory('');
-      // setSubcategory('');
-      // setNewSubcategory('');
-      // setName('');
-      // setQuantity('');
-      // setPrice('');
+      setCategory('');
+      setSubcategory('');
+      setNewSubcategory('');
+      setName('');
+      setQuantity('');
+      setPrice('');
     } catch (error) {
       console.log('Error adding item:', error);
     }
@@ -433,15 +418,20 @@ const AddItem = props => {
     }
   };
 
+  const isFormValid = category && subcategory && name && quantity && price;
+
+  const placeholderTextColor =
+    Appearance.getColorScheme() === 'dark' ? '#222831' : '#222831';
+
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Add Item</Text>
+      <Text style={styles.heading}>Add Items</Text>
       <View style={styles.form}>
         <Picker
           style={styles.input}
           prompt="Category"
           selectedValue={category}
-          onValueChange={value => setCategory(value)}>
+          onValueChange={setCategory}>
           <Picker.Item label="Select a category" value="" />
           <Picker.Item label="Guns" value="guns" />
           <Picker.Item label="Pistols" value="pistols" />
@@ -453,7 +443,7 @@ const AddItem = props => {
               style={styles.input}
               prompt="Subcategory"
               selectedValue={showNewSubcategory ? 'add_new' : subcategory}
-              onValueChange={value => handleSubcategoryChange(value)}>
+              onValueChange={handleSubcategoryChange}>
               <Picker.Item label="Select a subcategory" value="" />
               {subcategories.map(subcat => (
                 <Picker.Item key={subcat} label={subcat} value={subcat} />
@@ -466,11 +456,13 @@ const AddItem = props => {
                   style={styles.input}
                   placeholder="New Subcategory"
                   value={newSubcategory}
-                  onChangeText={text => setNewSubcategory(text)}
+                  placeholderTextColor={placeholderTextColor}
+                  onChangeText={setNewSubcategory}
                 />
                 <TouchableOpacity
                   style={styles.addButton}
-                  onPress={handleAddSubcategory}>
+                  onPress={handleAddSubcategory}
+                  disabled={!newSubcategory}>
                   <Text style={styles.addButtonText}>Add Subcategory</Text>
                 </TouchableOpacity>
               </View>
@@ -478,38 +470,39 @@ const AddItem = props => {
           </>
         )}
         <TextInput
-          style={styles.input}
+          style={[styles.input, {width: '100%'}]}
           placeholder="Name"
           value={name}
-          onChangeText={text => setName(text)}
+          placeholderTextColor={placeholderTextColor}
+          onChangeText={setName}
         />
         <TextInput
-          style={styles.input}
+          style={[styles.input, {width: '100%'}]}
           placeholder="Quantity"
           keyboardType="numeric"
+          placeholderTextColor={placeholderTextColor}
           value={quantity}
-          onChangeText={text => setQuantity(text)}
+          onChangeText={setQuantity}
         />
         <TextInput
-          style={styles.input}
+          style={[styles.input, {width: '100%'}]}
           placeholder="Price"
+          placeholderTextColor={placeholderTextColor}
           keyboardType="numeric"
           value={price}
-          onChangeText={text => setPrice(text)}
+          onChangeText={setPrice}
         />
 
-        <TouchableOpacity style={styles.addButton} onPress={handleAddItem}>
+        <TouchableOpacity
+          style={[styles.addButton, !isFormValid && styles.addButtonDisabled]}
+          onPress={handleAddItem}
+          disabled={!isFormValid}>
           <Text style={styles.addButtonText}>Add Item</Text>
         </TouchableOpacity>
 
         {/* Back to Dashboard */}
         <TouchableOpacity
-          style={[
-            styles.addButton,
-            {
-              backgroundColor: '#EEEEEE',
-            },
-          ]}
+          style={[styles.addButton, styles.backToDashboardButton]}
           onPress={() => props.navigation.navigate('Dashboard')}>
           <Text style={[styles.addButtonText, {
             color: '#222831',
@@ -519,6 +512,9 @@ const AddItem = props => {
     </View>
   );
 };
+
+const windowWidth = Dimensions.get('window').width;
+const windowHeight = Dimensions.get('window').height;
 
 const styles = StyleSheet.create({
   container: {
@@ -532,16 +528,16 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
     color: '#00ADB5',
-
   },
   form: {
     backgroundColor: '#222831',
     borderRadius: 8,
     padding: 16,
-    height: '70%',
+    width: windowWidth * 0.9,
+    height: windowHeight * 0.6,
     justifyContent: 'space-between',
     alignContent: 'center',
-
+    alignSelf: 'center',
   },
   input: {
     height: 40,
@@ -560,6 +556,13 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     alignItems: 'center',
     marginBottom: 10,
+  },
+  addButtonDisabled: {
+    backgroundColor: 'gray',
+  },
+  backToDashboardButton: {
+    backgroundColor: '#EEEEEE',
+    color: '#222831',
   },
   addButtonText: {
     fontSize: 18,

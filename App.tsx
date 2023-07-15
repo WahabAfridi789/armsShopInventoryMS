@@ -15,6 +15,7 @@ import ViewAllItems from './src/screens/ViewAllItems';
 import ViewSubCategoryItem from './src/components/ViewSubCategoryItem';
 import ViewCategoryItems from './src/screens/ViewCategoryItems';
 import ViewSubCategoryItemsList from './src/screens/ViewSubCategoryItemsList';
+import AddSubCategoryItem from './src/screens/AddSubCategoryItem';
 
 const Stack = createStackNavigator();
 
@@ -22,13 +23,17 @@ function App() {
 
 
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  Auth().onAuthStateChanged((user) => {
-    if (user) {
-      setIsAuthenticated(true);
-    } else {
-      setIsAuthenticated(false);
-    }
-  })
+  useEffect(() => {
+    const unsubscribe = Auth().onAuthStateChanged((user) => {
+      if (user) {
+        setIsAuthenticated(true);
+      } else {
+        setIsAuthenticated(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
 
   return (
@@ -50,6 +55,7 @@ function App() {
         <Stack.Screen name="ViewSubCategoryItem" component={ViewSubCategoryItem} />
         <Stack.Screen name="ViewCategoryItems" component={ViewCategoryItems} />
         <Stack.Screen name="ViewSubCategoryItemsList" component={ViewSubCategoryItemsList} />
+        <Stack.Screen name="AddSubCategoryItem" component={AddSubCategoryItem} />
       </Stack.Navigator>
     </NavigationContainer>
   );
